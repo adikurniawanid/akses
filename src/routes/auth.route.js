@@ -25,4 +25,11 @@ router.post(
   AuthController.logout
 );
 
+router.post(
+  "/refresh-token",
+  authValidation.refreshTokenValidationRules(),
+  validation,
+  AuthController.refreshToken
+);
+
 module.exports = router;

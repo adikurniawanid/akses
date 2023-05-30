@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const { sequelize, User, UserBiodata, UserToken } = require("../models");
-const { hashPassword, generateJWT } = require("../helpers");
+const { hashPassword, generateJWT, verifyRefreshToken } = require("../helpers");
 
 class AuthController {
   static async register(req, res, next) {
@@ -97,6 +97,33 @@ class AuthController {
 
       res.status(200).json({
         message: "Logout successfully",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async refreshToken(req, res, next) {
+    try {
+      const { refreshToken } = req.body;
+      const tokenDetails = await verifyRefreshToken(refreshToken);
+
+      if (!tokenDetails) {
+        next({
+          status: 400,
+          message: "Invalid refresh token",
+        });
+      }
+
+      const accessToken = await generateJWT(
+        tokenDetails.userId,
+        tokenDetails.publicId,
+        tokenDetails.email
+      );
+
+      res.status(200).json({
+        message: "Access token created successfully",
+        token: accessToken.refreshToken,
       });
     } catch (error) {
       next(error);

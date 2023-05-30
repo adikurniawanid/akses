@@ -56,6 +56,15 @@ const logoutValidationRules = () => [
     .withMessage("User Public ID is not valid"),
 ];
 
+const refreshTokenValidationRules = () => [
+  body("refreshToken")
+    .notEmpty()
+    .bail()
+    .withMessage("Refresh Token is required")
+    .isJWT()
+    .withMessage("Refresh Token is not valid"),
+];
+
 const loginWithGoogleValidationRules = () => [
   body("googleIdToken")
     .notEmpty()
@@ -108,6 +117,7 @@ module.exports = {
   registerValidationRules,
   loginValidationRules,
   logoutValidationRules,
+  refreshTokenValidationRules,
   forgotPasswordValidationRules,
   verifyforgotPasswordTokenValidationRules,
   changeForgotPasswordValidationRules,
