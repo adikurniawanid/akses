@@ -47,6 +47,15 @@ const loginValidationRules = () => [
     .withMessage("Password must between 8 - 21 characters"),
 ];
 
+const logoutValidationRules = () => [
+  body("userPublicId")
+    .notEmpty()
+    .bail()
+    .withMessage("User Public ID is required")
+    .isUUID()
+    .withMessage("User Public ID is not valid"),
+];
+
 const loginWithGoogleValidationRules = () => [
   body("googleIdToken")
     .notEmpty()
@@ -98,6 +107,7 @@ const changeForgotPasswordValidationRules = () => [
 module.exports = {
   registerValidationRules,
   loginValidationRules,
+  logoutValidationRules,
   forgotPasswordValidationRules,
   verifyforgotPasswordTokenValidationRules,
   changeForgotPasswordValidationRules,

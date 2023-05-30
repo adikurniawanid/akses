@@ -10,12 +10,19 @@ router.post(
   validation,
   AuthController.register
 );
+
 router.post(
   "/login",
   authValidation.loginValidationRules(),
   validation,
   AuthController.login
 );
-router.get("/logout", AuthController.login);
+
+router.post(
+  "/logout",
+  authValidation.logoutValidationRules(),
+  validation,
+  AuthController.logout
+);
 
 module.exports = router;

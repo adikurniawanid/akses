@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const { sequelize, User, UserBiodata } = require("../models");
+const { sequelize, User, UserBiodata, UserToken } = require("../models");
 const { hashPassword, generateJWT } = require("../helpers");
 
 class AuthController {
@@ -74,7 +74,33 @@ class AuthController {
   }
 
   static async logout(req, res, next) {
-    res.json("ok");
+    try {
+      const { userPublicId } = req.body;
+
+      const user = await User.findOne({ publicId: userPublicId });
+
+      if (!user) {
+        next({
+          status: 404,
+          message: "user not found",
+        });
+      }
+
+      await UserToken.update(
+        {
+          refreshToken: null,
+        },
+        {
+          where: { userId: user.id },
+        }
+      );
+
+      res.status(200).json({
+        message: "Logout successfully",
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   static async loginWithGoogle(req, res, next) {
