@@ -2,7 +2,19 @@
 const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
-    static associate(models) {}
+    static associate(models) {
+      User.hasOne(models.UserBiodata, {
+        foreignKey: "userId",
+      });
+
+      User.hasOne(models.UserToken, {
+        foreignKey: "userId",
+      });
+
+      User.belongsTo(models.DetailLoginType, {
+        foreignKey: "id",
+      });
+    }
   }
   User.init(
     {
@@ -21,10 +33,16 @@ module.exports = (sequelize, DataTypes) => {
       username: { type: DataTypes.STRING, unique: true, allowNull: false },
       email: { type: DataTypes.STRING, unique: true, allowNull: false },
       password: { type: DataTypes.STRING, allowNull: false },
+      loginTypeId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
     },
     {
       sequelize,
       modelName: "User",
+      tableName: "Users",
       paranoid: true,
     }
   );

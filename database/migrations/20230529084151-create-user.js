@@ -28,6 +28,15 @@ module.exports = {
         allowNull: false,
         type: Sequelize.STRING,
       },
+      loginTypeId: {
+        allowNull: false,
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+        references: {
+          model: "DetailLoginTypes",
+          key: "id",
+        },
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,

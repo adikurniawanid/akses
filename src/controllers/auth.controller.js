@@ -1,3 +1,4 @@
+const bcrypt = require("bcrypt");
 const { sequelize, User, UserBiodata } = require("../models");
 const { hashPassword, generateJWT } = require("../helpers");
 
@@ -33,7 +34,43 @@ class AuthController {
   }
 
   static async login(req, res, next) {
-    res.json("ok");
+    try {
+      const { email, password } = req.body;
+      const user = await User.findOne({
+        include: { model: UserBiodata, attributes: ["name"] },
+        where: { email, loginTypeId: 0 },
+      });
+
+      if (!user) {
+        next({
+          status: 401,
+          message: {
+            en: "Invalid email or password",
+            id: "Email atau password salah",
+          },
+        });
+      }
+
+      const verifiedPassword = await bcrypt.compare(password, user.password);
+
+      if (!verifiedPassword) {
+        next({
+          status: 401,
+          message: "Invalid email or password",
+        });
+      }
+
+      res.status(200).json({
+        message: "Login sucessfully",
+        data: {
+          publicId: user.publicId,
+          name: user.UserBiodatum.name,
+        },
+        token: await generateJWT(user.id, user.publicId, user.email),
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
   static async logout(req, res, next) {
