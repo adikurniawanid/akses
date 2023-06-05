@@ -96,9 +96,9 @@ class AuthController {
 
   static async logout(req, res, next) {
     try {
-      const { userPublicId } = req.body;
+      const { publicId } = req.body;
 
-      const user = await User.findOne({ publicId: userPublicId });
+      const user = await User.findOne({ publicId: publicId });
 
       if (!user) {
         next({
@@ -144,7 +144,7 @@ class AuthController {
 
       res.status(200).json({
         message: "Access token created successfully",
-        token: accessToken.refreshToken,
+        token: accessToken.accessToken,
       });
     } catch (error) {
       next(error);
@@ -207,8 +207,9 @@ class AuthController {
             username: newUser.username,
             avatarUrl: newUserBiodata.avatarUrl,
           },
-          token,
+          token: await generateJWT(newUser.id, newUser.publicId, newUser.email),
         });
+        return;
       }
 
       await UserBiodata.update(

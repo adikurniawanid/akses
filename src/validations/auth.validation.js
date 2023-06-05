@@ -48,12 +48,7 @@ const loginValidationRules = () => [
 ];
 
 const logoutValidationRules = () => [
-  body("userPublicId")
-    .notEmpty()
-    .bail()
-    .withMessage("User Public ID is required")
-    .isUUID()
-    .withMessage("User Public ID is not valid"),
+  body("publicId").notEmpty().withMessage("User Public ID is required"),
 ];
 
 const refreshTokenValidationRules = () => [
