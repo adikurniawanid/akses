@@ -12,7 +12,8 @@ module.exports = {
       publicId: {
         allowNull: false,
         unique: true,
-        type: Sequelize.UUID,
+        type: Sequelize.STRING,
+        defaultValue: Sequelize.UUIDV4,
       },
       username: {
         allowNull: false,
