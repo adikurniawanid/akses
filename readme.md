@@ -1,6 +1,6 @@
 ```mermaid
 ---
-title: aksesKu
+title: akses
 ---
 
 erDiagram

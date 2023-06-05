@@ -6,7 +6,7 @@ module.exports = {
       [
         {
           id: "0",
-          description: "aksesKu",
+          description: "akses",
         },
         {
           id: "1",
