@@ -2,22 +2,26 @@
 module.exports = {
   async up(queryInterface, _Sequelize) {
     await queryInterface.bulkInsert(
-      'DetailLoginTypes',
+      "DetailLoginTypes",
       [
         {
-          id: '0',
-          description: 'app',
+          id: "0",
+          description: "aksesKu",
         },
         {
-          id: '1',
-          description: 'Google',
+          id: "1",
+          description: "Google",
+        },
+        {
+          id: "2",
+          description: "Facebook",
         },
       ],
-      {},
+      {}
     );
   },
 
   async down(queryInterface, _Sequelize) {
-    await queryInterface.bulkDelete('DetailLoginTypes', null, {});
+    await queryInterface.bulkDelete("DetailLoginTypes", null, {});
   },
 };

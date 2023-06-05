@@ -26,6 +26,13 @@ router.post(
 );
 
 router.post(
+  "/login-with-facebook",
+  authValidation.loginWithFacebookValidationRules(),
+  validation,
+  AuthController.loginWithFacebook
+);
+
+router.post(
   "/logout",
   authValidation.logoutValidationRules(),
   validation,

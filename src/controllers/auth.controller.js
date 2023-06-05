@@ -8,6 +8,7 @@ const {
   generateRandomUsername,
 } = require("../helpers");
 const config = require("../config/googleOAuth.config");
+const axios = require("axios");
 const googleOAuthClient = new OAuth2Client(
   config.GOOGLE_CLIENT_ID,
   config.GOOGLE_CLIENT_SECRET
@@ -207,7 +208,7 @@ class AuthController {
             username: newUser.username,
             avatarUrl: newUserBiodata.avatarUrl,
           },
-          token: await generateJWT(newUser.id, newUser.publicId, newUser.email),
+          token,
         });
         return;
       }
@@ -241,7 +242,93 @@ class AuthController {
   }
 
   static async loginWithFacebook(req, res, next) {
-    res.json("ok");
+    const transaction = await sequelize.transaction();
+    try {
+      const facebookLogin = await axios.get(
+        `https://graph.facebook.com/v17.0/me?fields=id,name,email,picture.width(640).height(640)&access_token=${req.body.facebookIdToken}`
+      );
+
+      const payload = facebookLogin.data;
+
+      const user = await User.findOne({
+        where: {
+          publicId: payload.id,
+        },
+        include: {
+          model: UserBiodata,
+          attributes: ["name", "avatarUrl"],
+        },
+      });
+
+      if (!user) {
+        const newUser = await User.create(
+          {
+            email: `${payload.id}@facebook.com`,
+            password: await hashPassword(payload.id),
+            publicId: payload.id,
+            username: generateRandomUsername(),
+            loginTypeId: 2,
+          },
+          { transaction }
+        );
+
+        const newUserBiodata = await UserBiodata.create(
+          {
+            userId: newUser.id,
+            name: payload.name,
+            avatarUrl: payload.picture.data.url,
+          },
+          { transaction }
+        );
+
+        await transaction.commit();
+        const token = await generateJWT(
+          newUser.id,
+          newUser.publicId,
+          newUser.email
+        );
+
+        res.status(201).json({
+          message: "User created successfully",
+          data: {
+            publicId: newUser.publicId,
+            name: newUserBiodata.name,
+            username: newUser.username,
+            avatarUrl: newUserBiodata.avatarUrl,
+          },
+          token,
+        });
+        return;
+      }
+
+      await UserBiodata.update(
+        {
+          name: payload.name,
+          avatarUrl: payload.picture.data.url,
+        },
+        {
+          where: {
+            userId: user.id,
+          },
+        }
+      );
+
+      const token = await generateJWT(user.id, user.publicId, user.email);
+
+      res.status(200).json({
+        message: "Login sucessfully",
+        data: {
+          publicId: user.publicId,
+          name: user.UserBiodatum.name,
+          username: user.username,
+          avatarUrl: user.UserBiodatum.avatarUrl,
+        },
+        token,
+      });
+    } catch (error) {
+      await transaction.rollback();
+      next(error);
+    }
   }
 }
 
