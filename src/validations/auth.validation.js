@@ -94,6 +94,7 @@ const verifyforgotPasswordTokenValidationRules = () => [
 ];
 
 const changeForgotPasswordValidationRules = () => [
+  body("token").notEmpty().withMessage("Token is required"),
   body("email")
     .notEmpty()
     .bail()
@@ -108,11 +109,18 @@ const changeForgotPasswordValidationRules = () => [
     .withMessage("New password must between 8 - 21 characters"),
   body("verificationPassword")
     .notEmpty()
-    .bail()
     .withMessage("Verification password is required")
+    .bail()
+    .custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error(
+          "Password confirmation does not match with new password"
+        );
+      }
+      return true;
+    })
     .isLength({ min: 8, max: 21 })
     .withMessage("Verification password must between 8 - 21 characters"),
-  body("token").notEmpty().bail().withMessage("Token is required"),
 ];
 
 module.exports = {

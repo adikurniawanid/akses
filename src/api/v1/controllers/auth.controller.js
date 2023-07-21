@@ -1,4 +1,5 @@
 const bcrypt = require("bcrypt");
+const otpGenerator = require("otp-generator");
 const { OAuth2Client } = require("google-auth-library");
 const { sequelize, User, UserBiodata, UserToken } = require("../../../models");
 const {
@@ -13,6 +14,10 @@ const googleOAuthClient = new OAuth2Client(
   config.GOOGLE_CLIENT_ID,
   config.GOOGLE_CLIENT_SECRET
 );
+const sendMail = require("../../../helpers/sendMail.helper");
+const forgotPasswordMailTemplate = require("../../../../templates/emails/forgotPassword.email");
+const FORGOT_PASSWORD_TOKEN_EXPIRATION =
+  process.env.FORGOT_PASSWORD_TOKEN_EXPIRATION;
 class AuthController {
   static async register(req, res, next) {
     const transaction = await sequelize.transaction();
@@ -329,6 +334,132 @@ class AuthController {
       });
     } catch (error) {
       await transaction.rollback();
+      next(error);
+    }
+  }
+
+  static async forgotPassword(req, res, next) {
+    try {
+      const { email } = req.body;
+      const user = await User.findOne({
+        attributes: ["id", "email"],
+        include: { model: UserBiodata, attributes: ["name"] },
+        where: { email },
+      });
+
+      if (!user) {
+        next({
+          status: 404,
+          message: "User not found",
+        });
+      }
+
+      const otp = otpGenerator.generate(6, {
+        upperCase: false,
+        specialChars: false,
+      });
+
+      const otpHash = await hashPassword(otp);
+
+      await UserToken.update(
+        {
+          forgotPasswordToken: otpHash,
+          forgotPasswordTokenExpiredAt: new Date(
+            Date.now() + FORGOT_PASSWORD_TOKEN_EXPIRATION * 60000
+          ),
+        },
+        {
+          where: {
+            userId: user.id,
+          },
+        }
+      );
+
+      await sendMail(
+        "changePassword@akses.com",
+        req.body.email,
+        "Your Forgot Password Token",
+        null,
+        forgotPasswordMailTemplate(user.UserBiodatum.name, otp)
+      );
+
+      res.status(200).json({
+        message: "Success send forgot password token",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async changeForgotPassword(req, res, next) {
+    try {
+      const { email, token, newPassword } = req.body;
+
+      const user = await User.findOne({
+        attributes: ["id"],
+        include: {
+          model: UserToken,
+          attributes: ["forgotPasswordToken", "forgotPasswordTokenExpiredAt"],
+        },
+        where: { email },
+      });
+
+      if (!user) {
+        next({
+          status: 404,
+          message: "User not found",
+        });
+      }
+
+      if (
+        user.UserToken.forgotPasswordTokenExpiredAt < new Date() &&
+        user.UserToken.forgotPasswordTokenExpiredAt !== null
+      ) {
+        next({
+          status: 422,
+          message: "Token expired, please request a new token",
+        });
+      }
+
+      const isTokenValid = await bcrypt.compare(
+        token,
+        user.UserToken.forgotPasswordToken
+      );
+
+      if (!isTokenValid) {
+        next({
+          status: 422,
+          message: "Token invalid, please check your token",
+        });
+      }
+
+      await User.update(
+        {
+          password: await hashPassword(newPassword),
+        },
+        {
+          where: {
+            id: user.id,
+          },
+        }
+      );
+
+      await UserToken.update(
+        {
+          forgotPasswordToken: null,
+          forgotPasswordTokenExpiredAt: null,
+        },
+        {
+          where: {
+            userId: user.id,
+          },
+        }
+      );
+
+      res.status(200).json({
+        message: "Password changed successfully",
+      });
+    } catch (error) {
       next(error);
     }
   }

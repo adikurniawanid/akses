@@ -10,11 +10,11 @@ module.exports = async (userIdParam, publicIdParam, emailParam) => {
   };
 
   const accessToken = jwt.sign(payload, config.JWT_SECRET_KEY, {
-    expiresIn: config.JWT_EXPIRATION * 60,
+    expiresIn: config.JWT_EXPIRATION * 3600 * 60,
   });
 
   const refreshToken = jwt.sign(payload, config.JWT_REFRESH_SECRET_KEY, {
-    expiresIn: config.JWT_REFRESH_EXPIRATION * 60,
+    expiresIn: config.JWT_REFRESH_EXPIRATION * 24 * 3600 * 60,
   });
 
   const userToken = await UserToken.findOne({

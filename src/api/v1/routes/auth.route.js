@@ -46,4 +46,17 @@ router.post(
   AuthController.refreshToken
 );
 
+router.post(
+  "/forgot-password",
+  authValidation.forgotPasswordValidationRules(),
+  validation,
+  AuthController.forgotPassword
+);
+
+router.put(
+  "/forgot-password",
+  authValidation.changeForgotPasswordValidationRules(),
+  validation,
+  AuthController.changeForgotPassword
+);
 module.exports = router;
