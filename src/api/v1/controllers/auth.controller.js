@@ -99,12 +99,12 @@ class AuthController {
     try {
       const { publicId } = req.body;
 
-      const user = await User.findOne({ publicId: publicId });
+      const user = await User.findOne({ where: { publicId: publicId } });
 
       if (!user) {
         next({
           status: 404,
-          message: "user not found",
+          message: "User not found",
         });
       }
 
@@ -143,9 +143,11 @@ class AuthController {
         tokenDetails.email
       );
 
-      res.status(200).json({
+      res.status(201).json({
         message: "Access token created successfully",
-        token: accessToken.accessToken,
+        token: {
+          accessToken: accessToken.accessToken,
+        },
       });
     } catch (error) {
       next(error);

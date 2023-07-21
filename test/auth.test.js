@@ -2,11 +2,15 @@ const supertest = require("supertest");
 const app = require("../app");
 const removeTestUser = require("./utils/removeUserTest.util");
 const APITestVersion = "v1";
-const googleIdToken = process.env.TEST_GOOGLE_ID_TOKEN;
-const facebookIdToken = process.env.TEST_FACEBOOK_ID_TOKEN;
+const testIdToken = require("./testIdToken.json");
 
-let googleUsernameTestTest = "";
-let facebookUsernameTestTest = "";
+const googleIdToken = testIdToken.TEST_GOOGLE_ID_TOKEN;
+const facebookIdToken = testIdToken.TEST_FACEBOOK_ID_TOKEN;
+
+let googleUsernameTest = "";
+let facebookUsernameTest = "";
+let publicIdTest = "";
+let refreshTokenTest = "";
 
 describe("akses Testing", () => {
   it("201 > Register User", async () => {
@@ -60,6 +64,9 @@ describe("akses Testing", () => {
     expect(result.body.data.avatarUrl).toBeNull();
     expect(result.body.token.accessToken).toBeDefined();
     expect(result.body.token.refreshToken).toBeDefined();
+
+    publicIdTest = result.body.data.publicId;
+    refreshTokenTest = result.body.token.refreshToken;
   });
 
   it("401 > Invalid Email or Password", async () => {
@@ -105,7 +112,7 @@ describe("akses Testing", () => {
     expect(result.body.token.accessToken).toBeDefined();
     expect(result.body.token.refreshToken).toBeDefined();
 
-    googleUsernameTestTest = result.body.data.username;
+    googleUsernameTest = result.body.data.username;
   });
 
   it("201 > Create New Account With Facebook", async () => {
@@ -141,7 +148,70 @@ describe("akses Testing", () => {
     expect(result.body.token.accessToken).toBeDefined();
     expect(result.body.token.refreshToken).toBeDefined();
 
-    facebookUsernameTestTest = result.body.data.username;
+    facebookUsernameTest = result.body.data.username;
+  });
+
+  it("200 > Success Refresh Token", async () => {
+    const result = await supertest(app)
+      .post(`/${APITestVersion}/refresh-token`)
+      .send({
+        refreshToken: refreshTokenTest,
+      });
+
+    expect(result.status).toBe(201);
+    expect(result.body.message).toBe("Access token created successfully");
+    expect(result.body.token.accessToken).toBeDefined();
+  });
+
+  it("400 > Validation Refresh Token", async () => {
+    const result = await supertest(app).post(
+      `/${APITestVersion}/refresh-token`
+    );
+
+    expect(result.status).toBe(400);
+    expect(result.body.message).toBe(
+      "Validation failed, entered data is incorrect."
+    );
+    expect(result.body.errors).toBeDefined();
+  });
+
+  it("401 > Invalid Refresh Token", async () => {
+    const result = await supertest(app)
+      .post(`/${APITestVersion}/refresh-token`)
+      .send({
+        refreshToken: refreshTokenTest.replace("a", "b"),
+      });
+
+    expect(result.status).toBe(401);
+    expect(result.body.message).toBe("Invalid refresh token");
+  });
+
+  it("200 > Logout", async () => {
+    const result = await supertest(app).post(`/${APITestVersion}/logout`).send({
+      publicId: publicIdTest,
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.body.message).toBe("Logout successfully");
+  });
+
+  it("400 > Validation Logout", async () => {
+    const result = await supertest(app).post(`/${APITestVersion}/logout`);
+
+    expect(result.status).toBe(400);
+    expect(result.body.message).toBe(
+      "Validation failed, entered data is incorrect."
+    );
+    expect(result.body.errors).toBeDefined();
+  });
+
+  it("404 > User Not Found", async () => {
+    const result = await supertest(app).post(`/${APITestVersion}/logout`).send({
+      publicId: "publicIdTest",
+    });
+
+    expect(result.status).toBe(404);
+    expect(result.body.message).toBe("User not found");
   });
 
   afterAll(async () => {
@@ -149,10 +219,10 @@ describe("akses Testing", () => {
   });
 
   afterAll(async () => {
-    await removeTestUser(googleUsernameTestTest);
+    await removeTestUser(googleUsernameTest);
   });
 
   afterAll(async () => {
-    await removeTestUser(facebookUsernameTestTest);
+    await removeTestUser(facebookUsernameTest);
   });
 });

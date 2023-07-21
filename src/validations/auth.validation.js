@@ -48,7 +48,7 @@ const loginValidationRules = () => [
 ];
 
 const logoutValidationRules = () => [
-  body("publicId").notEmpty().withMessage("User Public ID is required"),
+  body("publicId").notEmpty().withMessage("Public ID is required"),
 ];
 
 const refreshTokenValidationRules = () => [
