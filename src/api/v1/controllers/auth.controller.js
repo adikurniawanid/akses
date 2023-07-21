@@ -1,13 +1,13 @@
 const bcrypt = require("bcrypt");
 const { OAuth2Client } = require("google-auth-library");
-const { sequelize, User, UserBiodata, UserToken } = require("../models");
+const { sequelize, User, UserBiodata, UserToken } = require("../../../models");
 const {
   hashPassword,
   generateJWT,
   verifyRefreshToken,
   generateRandomUsername,
-} = require("../helpers");
-const config = require("../config/googleOAuth.config");
+} = require("../../../helpers");
+const config = require("../../../config/googleOAuth.config");
 const axios = require("axios");
 const googleOAuthClient = new OAuth2Client(
   config.GOOGLE_CLIENT_ID,
