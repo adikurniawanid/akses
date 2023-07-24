@@ -6,14 +6,18 @@ module.exports = {
       [
         {
           id: "0",
-          description: "akses",
+          description: "unverified",
         },
         {
           id: "1",
-          description: "Google",
+          description: "akses",
         },
         {
           id: "2",
+          description: "Google",
+        },
+        {
+          id: "3",
           description: "Facebook",
         },
       ],

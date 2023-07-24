@@ -16,6 +16,7 @@ const googleOAuthClient = new OAuth2Client(
 );
 const sendMail = require("../../../helpers/sendMail.helper");
 const forgotPasswordMailTemplate = require("../../../../templates/emails/forgotPassword.email");
+const sendVerificationEmailService = require("../services/sendVerificationEmail.service");
 const FORGOT_PASSWORD_TOKEN_EXPIRATION =
   process.env.FORGOT_PASSWORD_TOKEN_EXPIRATION;
 class AuthController {
@@ -66,7 +67,7 @@ class AuthController {
           model: UserBiodata,
           attributes: ["name", "avatarUrl"],
         },
-        where: { email, loginTypeId: 0 },
+        where: { email },
       });
 
       if (!user) {
@@ -85,16 +86,28 @@ class AuthController {
         });
       }
 
-      res.status(200).json({
-        message: "Login sucessfully",
-        data: {
-          publicId: user.publicId,
-          name: user.UserBiodatum.name,
-          username: user.username,
-          avatarUrl: user.UserBiodatum.avatarUrl,
-        },
-        token: await generateJWT(user.id, user.publicId, user.email),
-      });
+      if (user.loginTypeId === 0) {
+        const sendVerificationEmail = await sendVerificationEmailService(
+          user.id
+        );
+
+        if (sendVerificationEmail.status === "success") {
+          res.status(403).json({
+            message: `${sendVerificationEmail.message}, Please check your email to verify your account`,
+          });
+        }
+      } else if (user.loginTypeId === 1) {
+        res.status(200).json({
+          message: "Login sucessfully",
+          data: {
+            publicId: user.publicId,
+            name: user.UserBiodatum.name,
+            username: user.username,
+            avatarUrl: user.UserBiodatum.avatarUrl,
+          },
+          token: await generateJWT(user.id, user.publicId, user.email),
+        });
+      }
     } catch (error) {
       next(error);
     }
@@ -186,7 +199,7 @@ class AuthController {
             password: await hashPassword(payload.sub),
             publicId: payload.sub,
             username: generateRandomUsername(),
-            loginTypeId: 1,
+            loginTypeId: 2,
           },
           { transaction }
         );
@@ -274,7 +287,7 @@ class AuthController {
             password: await hashPassword(payload.id),
             publicId: payload.id,
             username: generateRandomUsername(),
-            loginTypeId: 2,
+            loginTypeId: 3,
           },
           { transaction }
         );
