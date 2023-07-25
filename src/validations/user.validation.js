@@ -1,5 +1,22 @@
-const { body, param } = require("express-validator");
-const { User } = require("../models");
+const { body } = require("express-validator");
+
+const updateUserValidationRules = () => {
+  return [
+    body("name").optional().notEmpty().withMessage("name is required"),
+    body("phone")
+      .optional()
+      .bail()
+      .notEmpty()
+      .withMessage("handphone is required")
+      .isNumeric()
+      .withMessage("handphone must be numbers"),
+    body("avatarUrl")
+      .optional()
+      .bail()
+      .notEmpty()
+      .withMessage("avatarUrl is required"),
+  ];
+};
 
 const updatePasswordValidationRules = () => [
   body("oldPassword")
@@ -35,5 +52,6 @@ const updatePasswordValidationRules = () => [
 ];
 
 module.exports = {
+  updateUserValidationRules,
   updatePasswordValidationRules,
 };
