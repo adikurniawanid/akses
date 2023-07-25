@@ -46,7 +46,12 @@ class AuthController {
       );
       await transaction.commit();
 
-      const token = await generateJWTHelper(user.id, user.publicId, user.email);
+      const payload = {
+        publicId: user.publicId,
+        email: user.email,
+      };
+
+      const token = await generateJWTHelper(payload);
 
       res.status(201).json({
         message: "User created successfully",
@@ -91,6 +96,13 @@ class AuthController {
         });
       }
 
+      const payload = {
+        publicId: user.publicId,
+        email: user.email,
+      };
+
+      const token = await generateJWTHelper(payload);
+
       if (user.loginTypeId === 0) {
         res.status(403).json({
           message: "Email not verified, please verify your email first",
@@ -104,7 +116,7 @@ class AuthController {
             username: user.username,
             avatarUrl: user.UserBiodatum.avatarUrl,
           },
-          token: await generateJWTHelper(user.id, user.publicId, user.email),
+          token,
         });
       }
     } catch (error) {
@@ -301,11 +313,13 @@ class AuthController {
         });
       }
 
-      const accessToken = await generateJWTHelper(
-        tokenDetails.userId,
-        tokenDetails.publicId,
-        tokenDetails.email
-      );
+      const payload = {
+        userId: tokenDetails.userId,
+        publicId: tokenDetails.publicId,
+        email: tokenDetails.email,
+      };
+
+      const accessToken = await generateJWTHelper(payload);
 
       res.status(201).json({
         message: "Access token created successfully",
@@ -326,11 +340,11 @@ class AuthController {
         audience: googleOAuthconfig.GOOGLE_CLIENT_IDs,
       });
 
-      const payload = verifyToken.getPayload();
+      const payloadGoogleOauth = verifyToken.getPayload();
 
       const user = await User.findOne({
         where: {
-          publicId: payload.sub,
+          publicId: payloadGoogleOauth.sub,
         },
         include: {
           model: UserBiodata,
@@ -341,9 +355,9 @@ class AuthController {
       if (!user) {
         const newUser = await User.create(
           {
-            email: payload.email,
-            password: await hashPasswordHelper(payload.sub),
-            publicId: payload.sub,
+            email: payloadGoogleOauth.email,
+            password: await hashPasswordHelper(payloadGoogleOauth.sub),
+            publicId: payloadGoogleOauth.sub,
             username: generateRandomUsernameHelper(),
             loginTypeId: 2,
           },
@@ -353,18 +367,20 @@ class AuthController {
         const newUserBiodata = await UserBiodata.create(
           {
             userId: newUser.id,
-            name: payload.name,
-            avatarUrl: payload.picture,
+            name: payloadGoogleOauth.name,
+            avatarUrl: payloadGoogleOauth.picture,
           },
           { transaction }
         );
 
         await transaction.commit();
-        const token = await generateJWTHelper(
-          newUser.id,
-          newUser.publicId,
-          newUser.email
-        );
+        const payload = {
+          userId: newUser.id,
+          publicId: newUser.publicId,
+          email: newUser.email,
+        };
+
+        const token = await generateJWTHelper(payload);
 
         res.status(201).json({
           message: "User created successfully",
@@ -381,8 +397,8 @@ class AuthController {
 
       await UserBiodata.update(
         {
-          name: payload.name,
-          avatarUrl: payload.picture,
+          name: payloadGoogleOauth.name,
+          avatarUrl: payloadGoogleOauth.picture,
         },
         {
           where: {
@@ -390,6 +406,13 @@ class AuthController {
           },
         }
       );
+
+      const payload = {
+        publicId: user.publicId,
+        email: user.email,
+      };
+
+      const token = await generateJWTHelper(payload);
 
       res.status(200).json({
         message: "Login sucessfully",
@@ -399,7 +422,7 @@ class AuthController {
           username: user.username,
           avatarUrl: user.UserBiodatum.avatarUrl,
         },
-        token: await generateJWTHelper(user.id, user.publicId, user.email),
+        token,
       });
     } catch (error) {
       await transaction.rollback();
@@ -414,11 +437,11 @@ class AuthController {
         `https://graph.facebook.com/v17.0/me?fields=id,name,email,picture.width(640).height(640)&access_token=${req.body.facebookIdToken}`
       );
 
-      const payload = facebookLogin.data;
+      const payloadFB = facebookLogin.data;
 
       const user = await User.findOne({
         where: {
-          publicId: payload.id,
+          publicId: payloadFB.id,
         },
         include: {
           model: UserBiodata,
@@ -429,9 +452,9 @@ class AuthController {
       if (!user) {
         const newUser = await User.create(
           {
-            email: `${payload.id}@facebook.com`,
-            password: await hashPasswordHelper(payload.id),
-            publicId: payload.id,
+            email: `${payloadFB.id}@facebook.com`,
+            password: await hashPasswordHelper(payloadFB.id),
+            publicId: payloadFB.id,
             username: generateRandomUsernameHelper(),
             loginTypeId: 3,
           },
@@ -441,18 +464,19 @@ class AuthController {
         const newUserBiodata = await UserBiodata.create(
           {
             userId: newUser.id,
-            name: payload.name,
-            avatarUrl: payload.picture.data.url,
+            name: payloadFB.name,
+            avatarUrl: payloadFB.picture.data.url,
           },
           { transaction }
         );
 
         await transaction.commit();
-        const token = await generateJWTHelper(
-          newUser.id,
-          newUser.publicId,
-          newUser.email
-        );
+        const payload = {
+          userId: newUser.id,
+          publicId: newUser.publicId,
+          email: newUser.email,
+        };
+        const token = await generateJWTHelper(payload);
 
         res.status(201).json({
           message: "User created successfully",
@@ -469,8 +493,8 @@ class AuthController {
 
       await UserBiodata.update(
         {
-          name: payload.name,
-          avatarUrl: payload.picture.data.url,
+          name: payloadFB.name,
+          avatarUrl: payloadFB.picture.data.url,
         },
         {
           where: {
@@ -479,7 +503,11 @@ class AuthController {
         }
       );
 
-      const token = await generateJWTHelper(user.id, user.publicId, user.email);
+      const payload = {
+        publicId: user.publicId,
+        email: user.email,
+      };
+      const token = await generateJWTHelper(payload);
 
       res.status(200).json({
         message: "Login sucessfully",
@@ -607,6 +635,7 @@ class AuthController {
         {
           forgotPasswordToken: null,
           forgotPasswordTokenExpiredAt: null,
+          refreshToken: null,
         },
         {
           where: {

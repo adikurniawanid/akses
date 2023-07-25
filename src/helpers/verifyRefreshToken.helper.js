@@ -24,7 +24,6 @@ module.exports = async (refreshToken) => {
   }
 
   return {
-    userId: decoded.userId,
     publicId: decoded.publicId,
     email: decoded.email,
   };
