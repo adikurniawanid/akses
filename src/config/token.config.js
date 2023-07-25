@@ -1,0 +1,8 @@
+require("dotenv").config();
+
+module.exports = {
+  FORGOT_PASSWORD_TOKEN_EXPIRATION:
+    process.env.FORGOT_PASSWORD_TOKEN_EXPIRATION,
+  VERIFICATION_EMAIL_TOKEN_EXPIRATION:
+    process.env.VERIFICATION_EMAIL_TOKEN_EXPIRATION,
+};

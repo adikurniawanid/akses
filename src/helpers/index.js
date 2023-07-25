@@ -1,11 +1,13 @@
-const hashPassword = require("./hashPassword.helper");
-const generateJWT = require("./generateJWT.helper");
-const verifyRefreshToken = require("./verifyRefreshToken.helper");
-const generateRandomUsername = require("./generateRandomUsername.helper");
+const generateJWTHelper = require("./generateJWT.helper");
+const generateRandomUsernameHelper = require("./generateRandomUsername.helper");
+const hashPasswordHelper = require("./hashPassword.helper");
+const sendMailHelper = require("./sendMail.helper");
+const verifyRefreshTokenHelper = require("./verifyRefreshToken.helper");
 
 module.exports = {
-  hashPassword,
-  generateJWT,
-  verifyRefreshToken,
-  generateRandomUsername,
+  generateJWTHelper,
+  generateRandomUsernameHelper,
+  hashPasswordHelper,
+  sendMailHelper,
+  verifyRefreshTokenHelper,
 };

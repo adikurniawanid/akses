@@ -5,7 +5,7 @@ const failSafeHandler = require("./failSafeHandler.middleware");
 
 module.exports = {
   errorHandler,
-  validation,
   errorLogger,
   failSafeHandler,
+  validation,
 };

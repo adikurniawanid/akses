@@ -1,24 +1,28 @@
+const axios = require("axios");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 const otpGenerator = require("otp-generator");
 const { OAuth2Client } = require("google-auth-library");
+const googleOAuthconfig = require("../../../config/googleOAuth.config");
+const tokenConfig = require("../../../config/token.config");
 const { sequelize, User, UserBiodata, UserToken } = require("../../../models");
 const {
-  hashPassword,
-  generateJWT,
-  verifyRefreshToken,
-  generateRandomUsername,
+  hashPasswordHelper,
+  generateJWTHelper,
+  verifyRefreshTokenHelper,
+  generateRandomUsernameHelper,
+  sendMailHelper,
 } = require("../../../helpers");
-const config = require("../../../config/googleOAuth.config");
-const axios = require("axios");
+const {
+  forgotPasswordEmailTemplate,
+  verifyEmailTemplate,
+} = require("../../../../templates/emails");
+
 const googleOAuthClient = new OAuth2Client(
-  config.GOOGLE_CLIENT_ID,
-  config.GOOGLE_CLIENT_SECRET
+  googleOAuthconfig.GOOGLE_CLIENT_ID,
+  googleOAuthconfig.GOOGLE_CLIENT_SECRET
 );
-const sendMail = require("../../../helpers/sendMail.helper");
-const forgotPasswordMailTemplate = require("../../../../templates/emails/forgotPassword.email");
-const sendVerificationEmailService = require("../services/sendVerificationEmail.service");
-const FORGOT_PASSWORD_TOKEN_EXPIRATION =
-  process.env.FORGOT_PASSWORD_TOKEN_EXPIRATION;
+
 class AuthController {
   static async register(req, res, next) {
     const transaction = await sequelize.transaction();
@@ -30,7 +34,8 @@ class AuthController {
         {
           email,
           username,
-          password: await hashPassword(password),
+          password: await hashPasswordHelper(password),
+          loginTypeId: 1,
         },
         { transaction }
       );
@@ -41,7 +46,7 @@ class AuthController {
       );
       await transaction.commit();
 
-      const token = await generateJWT(user.id, user.publicId, user.email);
+      const token = await generateJWTHelper(user.id, user.publicId, user.email);
 
       res.status(201).json({
         message: "User created successfully",
@@ -99,7 +104,7 @@ class AuthController {
             username: user.username,
             avatarUrl: user.UserBiodatum.avatarUrl,
           },
-          token: await generateJWT(user.id, user.publicId, user.email),
+          token: await generateJWTHelper(user.id, user.publicId, user.email),
         });
       }
     } catch (error) {
@@ -112,6 +117,13 @@ class AuthController {
       const { email } = req.body;
 
       const user = await User.findOne({
+        attributes: ["id", "publicId"],
+        include: [
+          {
+            model: UserBiodata,
+            attributes: ["name"],
+          },
+        ],
         where: {
           email,
         },
@@ -131,12 +143,36 @@ class AuthController {
         };
       }
 
-      const sendVerificationEmail = await sendVerificationEmailService(email);
-      if (sendVerificationEmail.status === "success") {
-        res.status(200).json({
-          message: sendVerificationEmail.message,
-        });
-      }
+      const verifyEmailToken = crypto.randomBytes(128).toString("hex");
+      const hashedVerifyEmailToken = await hashPasswordHelper(verifyEmailToken);
+
+      const verifyEmailURL = `${process.env.API_URL}/${process.env.API_VERSION}/verify-email/${verifyEmailToken}/${user.publicId}`;
+
+      await UserToken.update(
+        {
+          verificationEmailToken: hashedVerifyEmailToken,
+          verificationEmailTokenExpiredAt: new Date(
+            Date.now() + tokenConfig.VERIFICATION_EMAIL_TOKEN_EXPIRATION * 60
+          ),
+        },
+        {
+          where: {
+            userId: user.id,
+          },
+        }
+      );
+
+      await sendMailHelper(
+        "verificationEmail@akses.com",
+        email,
+        "Verification Email - akses",
+        null,
+        verifyEmailTemplate(user.UserBiodatum.name, verifyEmailURL)
+      );
+
+      res.status(200).json({
+        message: "Verification email has been sent",
+      });
     } catch (error) {
       next(error);
     }
@@ -256,7 +292,7 @@ class AuthController {
   static async refreshToken(req, res, next) {
     try {
       const { refreshToken } = req.body;
-      const tokenDetails = await verifyRefreshToken(refreshToken);
+      const tokenDetails = await verifyRefreshTokenHelper(refreshToken);
 
       if (!tokenDetails) {
         next({
@@ -265,7 +301,7 @@ class AuthController {
         });
       }
 
-      const accessToken = await generateJWT(
+      const accessToken = await generateJWTHelper(
         tokenDetails.userId,
         tokenDetails.publicId,
         tokenDetails.email
@@ -287,7 +323,7 @@ class AuthController {
     try {
       const verifyToken = await googleOAuthClient.verifyIdToken({
         idToken: req.body.googleIdToken,
-        audience: config.GOOGLE_CLIENT_IDs,
+        audience: googleOAuthconfig.GOOGLE_CLIENT_IDs,
       });
 
       const payload = verifyToken.getPayload();
@@ -306,9 +342,9 @@ class AuthController {
         const newUser = await User.create(
           {
             email: payload.email,
-            password: await hashPassword(payload.sub),
+            password: await hashPasswordHelper(payload.sub),
             publicId: payload.sub,
-            username: generateRandomUsername(),
+            username: generateRandomUsernameHelper(),
             loginTypeId: 2,
           },
           { transaction }
@@ -324,7 +360,7 @@ class AuthController {
         );
 
         await transaction.commit();
-        const token = await generateJWT(
+        const token = await generateJWTHelper(
           newUser.id,
           newUser.publicId,
           newUser.email
@@ -363,7 +399,7 @@ class AuthController {
           username: user.username,
           avatarUrl: user.UserBiodatum.avatarUrl,
         },
-        token: await generateJWT(user.id, user.publicId, user.email),
+        token: await generateJWTHelper(user.id, user.publicId, user.email),
       });
     } catch (error) {
       await transaction.rollback();
@@ -394,9 +430,9 @@ class AuthController {
         const newUser = await User.create(
           {
             email: `${payload.id}@facebook.com`,
-            password: await hashPassword(payload.id),
+            password: await hashPasswordHelper(payload.id),
             publicId: payload.id,
-            username: generateRandomUsername(),
+            username: generateRandomUsernameHelper(),
             loginTypeId: 3,
           },
           { transaction }
@@ -412,7 +448,7 @@ class AuthController {
         );
 
         await transaction.commit();
-        const token = await generateJWT(
+        const token = await generateJWTHelper(
           newUser.id,
           newUser.publicId,
           newUser.email
@@ -443,7 +479,7 @@ class AuthController {
         }
       );
 
-      const token = await generateJWT(user.id, user.publicId, user.email);
+      const token = await generateJWTHelper(user.id, user.publicId, user.email);
 
       res.status(200).json({
         message: "Login sucessfully",
@@ -482,13 +518,13 @@ class AuthController {
         specialChars: false,
       });
 
-      const otpHash = await hashPassword(otp);
+      const otpHash = await hashPasswordHelper(otp);
 
       await UserToken.update(
         {
           forgotPasswordToken: otpHash,
           forgotPasswordTokenExpiredAt: new Date(
-            Date.now() + FORGOT_PASSWORD_TOKEN_EXPIRATION * 60
+            Date.now() + tokenConfig.FORGOT_PASSWORD_TOKEN_EXPIRATION * 60
           ),
         },
         {
@@ -498,12 +534,12 @@ class AuthController {
         }
       );
 
-      await sendMail(
+      await sendMailHelper(
         "changePassword@akses.com",
         req.body.email,
         "Forgot Password - akses",
         null,
-        forgotPasswordMailTemplate(user.UserBiodatum.name, otp)
+        forgotPasswordEmailTemplate(user.UserBiodatum.name, otp)
       );
 
       res.status(200).json({
@@ -558,7 +594,7 @@ class AuthController {
 
       await User.update(
         {
-          password: await hashPassword(newPassword),
+          password: await hashPasswordHelper(newPassword),
         },
         {
           where: {

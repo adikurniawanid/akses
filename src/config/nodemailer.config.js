@@ -1,8 +1,11 @@
 require("dotenv").config();
 
 module.exports = {
-  EMAIL_HOST: process.env.EMAIL_HOST,
-  EMAIL_PORT: process.env.EMAIL_PORT,
-  EMAIL_AUTH_USER: process.env.EMAIL_AUTH_USER,
-  EMAIL_AUTH_PASSWORD: process.env.EMAIL_AUTH_PASSWORD,
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_HOST,
+  secure: process.env.EMAIL_PORT === 465, // true for 465, false for other ports
+  auth: {
+    user: process.env.EMAIL_AUTH_USER,
+    pass: process.env.EMAIL_AUTH_PASSWORD,
+  },
 };
