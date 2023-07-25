@@ -30,7 +30,7 @@ module.exports = async (emailParam) => {
       {
         verificationEmailToken: hashedVerifyEmailToken,
         verificationEmailTokenExpiredAt: new Date(
-          Date.now() + VERIFICATION_EMAIL_TOKEN_EXPIRATION * 60000
+          Date.now() + VERIFICATION_EMAIL_TOKEN_EXPIRATION * 60
         ),
       },
       {

@@ -488,7 +488,7 @@ class AuthController {
         {
           forgotPasswordToken: otpHash,
           forgotPasswordTokenExpiredAt: new Date(
-            Date.now() + FORGOT_PASSWORD_TOKEN_EXPIRATION * 60000
+            Date.now() + FORGOT_PASSWORD_TOKEN_EXPIRATION * 60
           ),
         },
         {
