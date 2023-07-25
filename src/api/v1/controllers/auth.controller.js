@@ -501,7 +501,7 @@ class AuthController {
       await sendMail(
         "changePassword@akses.com",
         req.body.email,
-        "Your Forgot Password Token",
+        "Forgot Password - akses",
         null,
         forgotPasswordMailTemplate(user.UserBiodatum.name, otp)
       );

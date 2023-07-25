@@ -130,3 +130,5 @@ dist
 .pnp.*
 
 test/testIdToken.json
+
+templates/emails/forgotPassword.old.email.js
