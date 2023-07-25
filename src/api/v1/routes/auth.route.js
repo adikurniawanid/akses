@@ -19,6 +19,15 @@ router.post(
 );
 
 router.post(
+  "/verify-email",
+  authValidation.verifyEmailValidationRules(),
+  validation,
+  AuthController.requestVerifyEmail
+);
+
+router.get("/verify-email/:token/:publicId", AuthController.verifyEmail);
+
+router.post(
   "/login-with-google",
   authValidation.loginWithGoogleValidationRules(),
   validation,

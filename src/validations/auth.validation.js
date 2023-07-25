@@ -1,4 +1,4 @@
-const { body } = require("express-validator");
+const { body, param } = require("express-validator");
 const { User } = require("../models");
 
 const registerValidationRules = () => [
@@ -49,6 +49,10 @@ const loginValidationRules = () => [
 
 const logoutValidationRules = () => [
   body("publicId").notEmpty().withMessage("Public ID is required"),
+];
+
+const verifyEmailValidationRules = () => [
+  body("email").notEmpty().withMessage("Email is required"),
 ];
 
 const refreshTokenValidationRules = () => [
@@ -133,4 +137,5 @@ module.exports = {
   changeForgotPasswordValidationRules,
   loginWithGoogleValidationRules,
   loginWithFacebookValidationRules,
+  verifyEmailValidationRules,
 };

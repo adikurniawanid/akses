@@ -3,12 +3,13 @@ const { User, UserToken, UserBiodata } = require("../../../models");
 const VERIFICATION_EMAIL_TOKEN_EXPIRATION =
   process.env.VERIFICATION_EMAIL_TOKEN_EXPIRATION;
 const sendMail = require("../../../helpers/sendMail.helper");
-const forgotPasswordMailTemplate = require("../../../../templates/emails/forgotPassword.email");
+const verifyEmailMailTemplate = require("../../../../templates/emails/verifyEmail.email");
+const hashPasswordHelper = require("../../../helpers/hashPassword.helper");
 
-module.exports = async (idParam) => {
+module.exports = async (emailParam) => {
   try {
     const user = await User.findOne({
-      attributes: ["email"],
+      attributes: ["id", "publicId"],
       include: [
         {
           model: UserBiodata,
@@ -16,56 +17,40 @@ module.exports = async (idParam) => {
         },
       ],
       where: {
-        id: idParam,
+        email: emailParam,
       },
     });
 
-    const isVerificationEmailTokenExpired = await UserToken.findOne({
-      attributes: ["verificationEmailTokenExpiredAt"],
-      where: {
-        userId: idParam,
+    const VerifyEmailToken = crypto.randomBytes(128).toString("hex");
+    const hashedVerifyEmailToken = await hashPasswordHelper(VerifyEmailToken);
+
+    const verifyEmailURL = `${process.env.API_URL}/${process.env.API_VERSION}/verify-email/${VerifyEmailToken}/${user.publicId}`;
+
+    await UserToken.update(
+      {
+        verificationEmailToken: hashedVerifyEmailToken,
+        verificationEmailTokenExpiredAt: new Date(
+          Date.now() + VERIFICATION_EMAIL_TOKEN_EXPIRATION * 60000
+        ),
       },
-    });
-
-    if (isVerificationEmailTokenExpired) {
-      if (
-        isVerificationEmailTokenExpired.verificationEmailTokenExpiredAt <
-        Date.now()
-      ) {
-        const token = crypto.randomBytes(128).toString("hex");
-
-        await UserToken.update(
-          {
-            verificationEmailToken: token,
-            verificationEmailTokenExpiredAt: new Date(
-              Date.now() + VERIFICATION_EMAIL_TOKEN_EXPIRATION * 60000
-            ),
-          },
-          {
-            where: {
-              userId: idParam,
-            },
-          }
-        );
-
-        await sendMail(
-          "verificationEmail@akses.com",
-          user.email,
-          "Verification Email - akses",
-          null,
-          forgotPasswordMailTemplate(user.UserBiodatum.name, token)
-        );
-
-        return {
-          status: "success",
-          message: "Verification email has been sent",
-        };
+      {
+        where: {
+          userId: user.id,
+        },
       }
-    }
+    );
+
+    await sendMail(
+      "verificationEmail@akses.com",
+      emailParam,
+      "Verification Email - akses",
+      null,
+      verifyEmailMailTemplate(user.UserBiodatum.name, verifyEmailURL)
+    );
 
     return {
       status: "success",
-      message: "Verification email still valid",
+      message: "Verification email has been sent",
     };
   } catch (error) {
     throw error;

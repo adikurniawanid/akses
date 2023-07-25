@@ -17,7 +17,7 @@ module.exports = {
         allowNull: true,
       },
       verificationEmailToken: {
-        type: Sequelize.TEXT,
+        type: Sequelize.STRING,
         allowNull: true,
       },
       verificationEmailTokenExpiredAt: {

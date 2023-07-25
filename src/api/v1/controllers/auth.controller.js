@@ -87,15 +87,9 @@ class AuthController {
       }
 
       if (user.loginTypeId === 0) {
-        const sendVerificationEmail = await sendVerificationEmailService(
-          user.id
-        );
-
-        if (sendVerificationEmail.status === "success") {
-          res.status(403).json({
-            message: `${sendVerificationEmail.message}, Please check your email to verify your account`,
-          });
-        }
+        res.status(403).json({
+          message: "Email not verified, please verify your email first",
+        });
       } else if (user.loginTypeId === 1) {
         res.status(200).json({
           message: "Login sucessfully",
@@ -109,6 +103,122 @@ class AuthController {
         });
       }
     } catch (error) {
+      next(error);
+    }
+  }
+
+  static async requestVerifyEmail(req, res, next) {
+    try {
+      const { email } = req.body;
+
+      const user = await User.findOne({
+        where: {
+          email,
+        },
+      });
+
+      if (!user) {
+        throw {
+          status: 404,
+          message: "User not found",
+        };
+      }
+
+      if (user.loginTypeId === 1) {
+        throw {
+          status: 400,
+          message: "Email already verified",
+        };
+      }
+
+      const sendVerificationEmail = await sendVerificationEmailService(email);
+      if (sendVerificationEmail.status === "success") {
+        res.status(200).json({
+          message: sendVerificationEmail.message,
+        });
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async verifyEmail(req, res, next) {
+    const transaction = await sequelize.transaction();
+
+    try {
+      const { token, publicId } = req.params;
+
+      const user = await User.findOne({
+        attributes: ["id"],
+        include: {
+          model: UserToken,
+          attributes: [
+            "verificationEmailToken",
+            "verificationEmailTokenExpiredAt",
+          ],
+        },
+        where: { publicId },
+      });
+
+      if (!user) {
+        throw {
+          status: 404,
+          message: "Invalid verification email token",
+        };
+      }
+
+      if (user.UserToken.verificationEmailToken == null) {
+        throw {
+          status: 404,
+          message: "Invalid verification email token",
+        };
+      }
+
+      if (
+        user.UserToken.verificationEmailTokenExpiredAt < new Date() &&
+        user.UserToken.verificationEmailTokenExpiredAt !== null
+      ) {
+        throw {
+          status: 422,
+          message: "Token expired, please request a new token",
+        };
+      }
+
+      if (bcrypt.compare(token, user.UserToken.verificationEmailToken)) {
+        await User.update(
+          {
+            loginTypeId: 1,
+          },
+          {
+            where: { id: user.id },
+          },
+          { transaction }
+        );
+
+        await UserToken.update(
+          {
+            verificationEmailToken: null,
+            verificationEmailTokenExpiredAt: null,
+          },
+          {
+            where: {
+              userId: user.id,
+            },
+          },
+          { transaction }
+        );
+
+        res.json({
+          message: "Email verified successfully",
+        });
+      } else {
+        throw {
+          status: 422,
+          message: "Token invalid, please check your token",
+        };
+      }
+    } catch (error) {
+      await transaction.rollback();
       next(error);
     }
   }
