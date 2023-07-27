@@ -5,6 +5,7 @@ const otpGenerator = require("otp-generator");
 const { OAuth2Client } = require("google-auth-library");
 const googleOAuthconfig = require("../../../config/googleOAuth.config");
 const tokenConfig = require("../../../config/token.config");
+const bcryptConfig = require("../../../config/bcrypt.config");
 const { sequelize, User, UserBiodata, UserToken } = require("../../../models");
 const {
   hashPasswordHelper,
@@ -29,12 +30,16 @@ class AuthController {
 
     try {
       const { name, username, email, password } = req.body;
+      const salt = bcrypt.genSaltSync(bcryptConfig.BCRYPT_ROUNDS);
 
       const user = await User.create(
         {
           email,
           username,
-          password: await hashPasswordHelper(password),
+          password: await hashPasswordHelper(
+            password + salt + bcryptConfig.PEPPER
+          ),
+          salt,
           loginTypeId: 1,
         },
         { transaction }
@@ -87,7 +92,10 @@ class AuthController {
         });
       }
 
-      const verifiedPassword = await bcrypt.compare(password, user.password);
+      const verifiedPassword = await bcrypt.compare(
+        password + user.salt + bcryptConfig.PEPPER,
+        user.password
+      );
 
       if (!verifiedPassword) {
         next({
@@ -164,7 +172,8 @@ class AuthController {
         {
           verificationEmailToken: hashedVerifyEmailToken,
           verificationEmailTokenExpiredAt: new Date(
-            Date.now() + tokenConfig.VERIFICATION_EMAIL_TOKEN_EXPIRATION * 60
+            Date.now() +
+              tokenConfig.VERIFICATION_EMAIL_TOKEN_EXPIRATION * 60 * 1000
           ),
         },
         {
@@ -353,10 +362,14 @@ class AuthController {
       });
 
       if (!user) {
+        const salt = bcrypt.genSaltSync(bcryptConfig.BCRYPT_ROUNDS);
         const newUser = await User.create(
           {
             email: payloadGoogleOauth.email,
-            password: await hashPasswordHelper(payloadGoogleOauth.sub),
+            password: await hashPasswordHelper(
+              payloadGoogleOauth.sub + salt + bcryptConfig.PEPPER
+            ),
+            salt,
             publicId: payloadGoogleOauth.sub,
             username: generateRandomUsernameHelper(),
             loginTypeId: 2,
@@ -450,10 +463,14 @@ class AuthController {
       });
 
       if (!user) {
+        const salt = bcrypt.genSaltSync(bcryptConfig.BCRYPT_ROUNDS);
         const newUser = await User.create(
           {
             email: `${payloadFB.id}@facebook.com`,
-            password: await hashPasswordHelper(payloadFB.id),
+            password: await hashPasswordHelper(
+              payloadFB.id + salt + bcryptConfig.PEPPER
+            ),
+            salt,
             publicId: payloadFB.id,
             username: generateRandomUsernameHelper(),
             loginTypeId: 3,
@@ -552,7 +569,8 @@ class AuthController {
         {
           forgotPasswordToken: otpHash,
           forgotPasswordTokenExpiredAt: new Date(
-            Date.now() + tokenConfig.FORGOT_PASSWORD_TOKEN_EXPIRATION * 60
+            Date.now() +
+              tokenConfig.FORGOT_PASSWORD_TOKEN_EXPIRATION * 60 * 1000
           ),
         },
         {
@@ -579,6 +597,7 @@ class AuthController {
   }
 
   static async changeForgotPassword(req, res, next) {
+    const transaction = await sequelize.transaction();
     try {
       const { email, token, newPassword } = req.body;
 
@@ -620,15 +639,21 @@ class AuthController {
         });
       }
 
+      const salt = bcrypt.genSaltSync(bcryptConfig.BCRYPT_ROUNDS);
+
       await User.update(
         {
-          password: await hashPasswordHelper(newPassword),
+          salt,
+          password: await hashPasswordHelper(
+            newPassword + salt + bcryptConfig.PEPPER
+          ),
         },
         {
           where: {
             id: user.id,
           },
-        }
+        },
+        { transaction }
       );
 
       await UserToken.update(
@@ -641,13 +666,15 @@ class AuthController {
           where: {
             userId: user.id,
           },
-        }
+        },
+        { transaction }
       );
 
       res.status(200).json({
         message: "Password changed successfully",
       });
     } catch (error) {
+      await transaction.rollback();
       next(error);
     }
   }

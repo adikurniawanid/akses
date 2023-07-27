@@ -1,5 +1,6 @@
-require('dotenv').config();
+require("dotenv").config();
 
 module.exports = {
-  BCRYPT_SALT: process.env.BCRYPT_SALT,
+  BCRYPT_ROUNDS: Number(process.env.BCRYPT_ROUNDS),
+  PEPPER: process.env.PEPPER,
 };

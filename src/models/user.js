@@ -33,6 +33,7 @@ module.exports = (sequelize, DataTypes) => {
       username: { type: DataTypes.STRING, unique: true, allowNull: false },
       email: { type: DataTypes.STRING, unique: true, allowNull: false },
       password: { type: DataTypes.STRING, allowNull: false },
+      salt: { type: DataTypes.STRING, allowNull: false },
       loginTypeId: {
         type: DataTypes.INTEGER,
         allowNull: false,

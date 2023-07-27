@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const { User, UserBiodata } = require("../../../models");
 const { hashPasswordHelper } = require("../../../helpers");
+const bcryptConfig = require("../../../config/bcrypt.config");
 
 class UserController {
   static async detail(req, res, next) {
@@ -90,7 +91,7 @@ class UserController {
       const { oldPassword, newPassword } = req.body;
 
       const user = await User.findOne({
-        attributes: ["password"],
+        attributes: ["password", "salt"],
         where: {
           id,
         },
@@ -103,7 +104,10 @@ class UserController {
         };
       }
 
-      const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+      const isPasswordValid = await bcrypt.compare(
+        oldPassword + user.salt + bcryptConfig.PEPPER,
+        user.password
+      );
 
       if (!isPasswordValid) {
         throw {
@@ -112,9 +116,14 @@ class UserController {
         };
       }
 
+      const salt = bcrypt.genSaltSync(bcryptConfig.BCRYPT_ROUNDS);
+
       await User.update(
         {
-          password: await hashPasswordHelper(newPassword),
+          password: await hashPasswordHelper(
+            newPassword + salt + bcryptConfig.PEPPER
+          ),
+          salt,
         },
         {
           where: {

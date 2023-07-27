@@ -29,6 +29,10 @@ module.exports = {
         allowNull: false,
         type: Sequelize.STRING,
       },
+      salt: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
       loginTypeId: {
         allowNull: false,
         type: Sequelize.INTEGER,
