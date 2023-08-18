@@ -8,4 +8,8 @@ module.exports = {
     user: process.env.EMAIL_AUTH_USER,
     pass: process.env.EMAIL_AUTH_PASSWORD,
   },
+  // For dev purposes only
+  tls: {
+    rejectUnauthorized: false,
+  },
 };

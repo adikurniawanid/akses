@@ -3,6 +3,7 @@ const path = require("path");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const cors = require("cors");
+const fs = require("fs");
 
 const {
   errorHandler,
@@ -13,7 +14,13 @@ const { authRouter, userRouter } = require("./src/api/v1/routes");
 
 const app = express();
 
-app.use(logger("dev"));
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, "access.log"),
+  { flags: "a" }
+);
+app.use(logger("dev", { stream: accessLogStream }));
+
+// app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

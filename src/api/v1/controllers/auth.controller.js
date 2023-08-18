@@ -40,7 +40,7 @@ class AuthController {
             password + salt + bcryptConfig.PEPPER
           ),
           salt,
-          loginTypeId: 1,
+          loginTypeId: 0,
         },
         { transaction }
       );
@@ -184,7 +184,6 @@ class AuthController {
       );
 
       await sendMailHelper(
-        "verificationEmail@akses.com",
         email,
         "Verification Email - akses",
         null,
@@ -581,7 +580,6 @@ class AuthController {
       );
 
       await sendMailHelper(
-        "changePassword@akses.com",
         req.body.email,
         "Forgot Password - akses",
         null,
