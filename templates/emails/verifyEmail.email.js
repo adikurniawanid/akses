@@ -505,8 +505,8 @@ module.exports = (name, link) => `
                                     style="font-size: 14px; line-height: 19.6px; color: #ecf0f1;">Jakarta
                                     Selatan,&nbsp;Indonesia</span></p>
                                 <p style="font-size: 14px; line-height: 140%;"><span
-                                    style="font-size: 14px; line-height: 19.6px; color: #ecf0f1;">+62 810 1111 3333 |
-                                    info@akses.com</span></p>
+                                    style="font-size: 14px; line-height: 19.6px; color: #ecf0f1;">akses@purnama.tech</span>
+                                </p>
                               </div>
 
                             </td>
