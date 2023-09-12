@@ -18,6 +18,7 @@ const {
   forgotPasswordEmailTemplate,
   verifyEmailTemplate,
 } = require("../../../../templates/emails");
+const { Op } = require("sequelize");
 
 const googleOAuthClient = new OAuth2Client(
   googleOAuthconfig.GOOGLE_CLIENT_ID,
@@ -137,7 +138,7 @@ class AuthController {
       const { email } = req.body;
 
       const user = await User.findOne({
-        attributes: ["id", "publicId"],
+        attributes: ["id", "publicId", "loginTypeId"],
         include: [
           {
             model: UserBiodata,
@@ -351,8 +352,16 @@ class AuthController {
       const payloadGoogleOauth = verifyToken.getPayload();
 
       const user = await User.findOne({
+        attributes: ["publicId", "id", "username"],
         where: {
-          publicId: payloadGoogleOauth.sub,
+          [Op.or]: [
+            {
+              publicId: payloadGoogleOauth.sub,
+            },
+            {
+              email: payloadGoogleOauth.email,
+            },
+          ],
         },
         include: {
           model: UserBiodata,

@@ -19,6 +19,21 @@ const registerValidationRules = () => [
         throw new Error("Email already in use");
       }
     }),
+  body("username")
+    .notEmpty()
+    .bail()
+    .withMessage("Username is required")
+    .custom(async (username) => {
+      if (
+        await User.findOne({
+          where: {
+            username,
+          },
+        })
+      ) {
+        throw new Error("Username already in use");
+      }
+    }),
   body("password")
     .notEmpty()
     .bail()
