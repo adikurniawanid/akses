@@ -19,6 +19,8 @@ class UserController {
         },
       });
 
+      console.log(user);
+
       if (!user) {
         throw {
           status: 404,

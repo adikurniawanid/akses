@@ -17,6 +17,7 @@ const {
 const {
   forgotPasswordEmailTemplate,
   verifyEmailTemplate,
+  welcomeEmailTemplate,
 } = require("../../../../templates/emails");
 const { Op } = require("sequelize");
 
@@ -184,16 +185,16 @@ class AuthController {
         }
       );
 
+      res.status(200).json({
+        message: "Verification email has been sent",
+      });
+
       await sendMailHelper(
         email,
         "Verification Email - akses",
         null,
         verifyEmailTemplate(user.UserBiodatum.name, verifyEmailURL)
       );
-
-      res.status(200).json({
-        message: "Verification email has been sent",
-      });
     } catch (error) {
       next(error);
     }
@@ -206,14 +207,20 @@ class AuthController {
       const { token, publicId } = req.params;
 
       const user = await User.findOne({
-        attributes: ["id"],
-        include: {
-          model: UserToken,
-          attributes: [
-            "verificationEmailToken",
-            "verificationEmailTokenExpiredAt",
-          ],
-        },
+        attributes: ["id", "email"],
+        include: [
+          {
+            model: UserToken,
+            attributes: [
+              "verificationEmailToken",
+              "verificationEmailTokenExpiredAt",
+            ],
+          },
+          {
+            model: UserBiodata,
+            attributes: ["name"],
+          },
+        ],
         where: { publicId },
       });
 
@@ -268,6 +275,13 @@ class AuthController {
         res.json({
           message: "Email verified successfully",
         });
+
+        await sendMailHelper(
+          user.email,
+          "Welcome to akses! 🎉 Let the Adventure Begin! - akses",
+          null,
+          welcomeEmailTemplate(user.UserBiodatum.name)
+        );
       } else {
         throw {
           status: 422,
@@ -352,7 +366,7 @@ class AuthController {
       const payloadGoogleOauth = verifyToken.getPayload();
 
       const user = await User.findOne({
-        attributes: ["publicId", "id", "username"],
+        attributes: ["publicId", "id", "username", "email"],
         where: {
           [Op.or]: [
             {
@@ -413,6 +427,13 @@ class AuthController {
           },
           token,
         });
+
+        await sendMailHelper(
+          newUser.email,
+          "Welcome to akses! 🎉 Let the Adventure Begin! - akses",
+          null,
+          welcomeEmailTemplate(newUserBiodata.name)
+        );
         return;
       }
 
@@ -503,6 +524,13 @@ class AuthController {
         };
         const token = await generateJWTHelper(payload);
 
+        // await sendMailHelper(
+        //   newUser.email,
+        //   "Welcome to akses! 🎉 Let the Adventure Begin! - akses",
+        //   null,
+        //   welcomeEmailTemplate(newUserBiodata.name)
+        // );
+
         res.status(201).json({
           message: "User created successfully",
           data: {
@@ -588,16 +616,16 @@ class AuthController {
         }
       );
 
+      res.status(200).json({
+        message: "Success send forgot password token",
+      });
+
       await sendMailHelper(
         req.body.email,
         "Forgot Password - akses",
         null,
         forgotPasswordEmailTemplate(user.UserBiodatum.name, otp)
       );
-
-      res.status(200).json({
-        message: "Success send forgot password token",
-      });
     } catch (error) {
       next(error);
     }
